@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Funding Calculator</title>
+  <style>
+    /* Basic styles for a clean layout */
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    input[type="text"],
+    select {
+      width: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+    }
+    button {
+      padding: 10px 15px;
+      background-color: #007BFF;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 10px;
+      background-color: #e8e8e8;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Funding Calculator</h1>
+    
+    <!-- Admission Type Dropdown (from Table1 headers) -->
+    <div class="form-group">
+      <label for="admissionType">Admission Type:</label>
+      <select id="admissionType">
+        <option value="PhD1-4 CDN">PhD1-4 CDN</option>
+	<option value="PhD5-7 CDN">PhD5-7 CDN</option>
+	<option value="PhD1-4 INTL">PhD1-4 INTL</option>
+	<option value="PhD5-7 INTL">PhD5-7 INTL</option>
+        <option value="MSc1 QC">MSc1 QC</option>
+        <option value="MSc2 QC">MSc2 QC</option>
+	<option value="MSc1 OOP">MSc1 OOP</option>
+	<option value="MSc2 OOP">MSc2 OOP</option>
+	<option value="MSc1 INTL">MSc1 INTL</option>
+	<option value="MSc2 INTL">MSc2 INTL</option>
+      </select>
+    </div>
+    
+    <!-- Award Amount Input (from Table2) -->
+    <div class="form-group">
+      <label for="awardAmount">Award Amount:</label>
+      <input type="text" id="awardAmount" placeholder="Enter Award Amount">
+    </div>
+
+    <!-- DFW Yes/No Dropdown (from Table3) -->
+    <div class="form-group">
+      <label for="dfwSelect">DFW (Differential Fee Waiver):</label>
+      <select id="dfwSelect">
+        <option value="No">No</option>
+        <option value="Yes">Yes</option>
+      </select>
+    </div>
+    
+    <!-- Calculate Button -->
+    <button id="calculateBtn">Calculate</button>
+    
+    <!-- Result Display -->
+    <div class="result" id="result">
+      <!-- Calculated values will be inserted here -->
+    </div>
+  </div>
+
+  <script>
+    // Simulated base data from Table1 (adjust these numbers as per your actual data)
+    const table1 = {
+      "Living Allowance": {
+        "PhD1-4 CDN": 24186.13,
+	"PhD5-7 CDN": 24186.13,
+        "PhD1-4 INTL": 24186.13,
+	"PhD5-7 INTL": 24186.13,
+	"MSc1 QC":22686.13,
+	"MSc2 QC":22686.13,
+        "MSc1 OOP": 22686.13,
+	"MSc2 OOP": 22686.13,
+	"MSc1 INTL": 22686.13,
+	"MSc2 INTL": 22686.13
+      },
+      "Tuition/Fees/Insurance": {
+        "PhD1-4 CDN": 5545,
+	"PhD5-7 CDN": 4734,
+        "PhD1-4 INTL": 21891,
+	"PhD5-7 INTL": 5349,
+	"MSc1 QC":5545,
+	"MSc2 QC":5751,
+        "MSc1 OOP": 12028,
+	"MSc2 OOP": 8993,
+	"MSc1 INTL": 24033,
+	"MSc2 INTL": 15303
+      },
+      "DFW": {
+        "PhD1-4 CDN": 0,
+	"PhD5-7 CDN": 0,
+        "PhD1-4 INTL": 15883.3,
+	"PhD5-7 INTL": 0,
+	"MSc1 QC":0,
+	"MSc2 QC":0,
+        "MSc1 OOP": 0,
+	"MSc2 OOP": 0,
+	"MSc1 INTL": 18046.61,
+	"MSc2 INTL": 0
+      }
+    };
+
+    document.getElementById("calculateBtn").addEventListener("click", function() {
+      // Get the selected admission type from the dropdown list
+      const admissionType = document.getElementById("admissionType").value;
+      // Parse the award amount (if invalid, default to 0)
+      const awardAmount = parseFloat(document.getElementById("awardAmount").value) || 0;
+      // Get DFW selection ("Yes" or "No") from the dropdown list
+      const dfwSelection = document.getElementById("dfwSelect").value;
+      
+      // Lookup values from Table1 based on the selected admission type
+      const livingAllowance = table1["Living Allowance"][admissionType] || 0;
+      const tuitionFees = table1["Tuition/Fees/Insurance"][admissionType] || 0;
+      
+      // DFW lookup: if "Yes", retrieve the value; if "No", it's 0.
+      const dfwValue = (dfwSelection === "Yes") ? (table1["DFW"][admissionType] || 0) : 0;
+      
+      // Calculate Minimum Funding using the formulas defined:
+      // 1. If Award < Living Allowance: Minimum Funding = Living Allowance + Tuition/Fees/Insurance + Award × 10%
+      // 2. If Award >= Living Allowance and Award < 40000: Minimum Funding = Award + Tuition/Fees/Insurance + Award × 10%
+      // 3. If Award >= 40000 and Award < 50000: Minimum Funding = Award + Tuition/Fees/Insurance
+      // 4. If Award >= 50000: Minimum Funding = 71253
+      let minFunding = 0;
+      if (awardAmount < livingAllowance) {
+        minFunding = livingAllowance + tuitionFees + (awardAmount * 0.10);
+      } else if (awardAmount >= livingAllowance && awardAmount < 40000) {
+        minFunding = awardAmount + tuitionFees + (awardAmount * 0.10);
+      } else if (awardAmount >= 40000 && awardAmount < 50000) {
+        minFunding = awardAmount + tuitionFees;
+      } else if (awardAmount >= 50000) {
+        minFunding = 71253;
+      }
+      
+      // Calculate PI Monthly Supplement:
+      // If DFW is "No": (minFunding - awardAmount)/12
+      // If DFW is "Yes": (minFunding - awardAmount - dfwValue)/12
+      let piMonthlySupplement = 0;
+      if (dfwSelection === "No") {
+        piMonthlySupplement = (minFunding - awardAmount) / 12;
+      } else {
+        piMonthlySupplement = (minFunding - awardAmount - dfwValue) / 12;
+      }
+      
+      // Display the results in the result div.
+      const resultDiv = document.getElementById("result");
+      resultDiv.innerHTML = `
+        <p><strong>Living Allowance:</strong> \$${livingAllowance}</p>
+        <p><strong>Tuition/Fees/Insurance:</strong> \$${tuitionFees}</p>
+        <p><strong>DFW Amount:</strong> \$${dfwValue}</p>
+        <p><strong>Minimum Funding:</strong> \$${minFunding.toFixed(2)}</p>
+        <p><strong>PI Monthly Supplement:</strong> \$${piMonthlySupplement.toFixed(2)}</p>
+      `;
+    });
+  </script>
+</body>
+</html>
